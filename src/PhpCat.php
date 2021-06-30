@@ -1,6 +1,9 @@
 <?php
 namespace PhpCat;
+use PhpCat\Config\Config;
+use PhpCat\Message\Impl\DefaultMessageIdFactory;
 use PhpCat\Message\Impl\DefaultMessageProducer;
+use PhpCat\Utils\CatContext;
 
 /**
  * Class PhpCat
@@ -11,10 +14,10 @@ class PhpCat
     /**
      * 设置配置
      */
-    function __construct($domain, $servers , $timeout = 800000){
-        Config\Config::$domain = $domain;
-        Config\Config::$servers = $servers;
-        Config\Config::$timeout = $timeout;
+    function __construct($domain, $servers , $timeout = 700000){
+        Config::$domain = $domain;
+        Config::$servers = $servers;
+        Config::$timeout = $timeout;
         self::$messageProducer = new DefaultMessageProducer();
         self::$messageProducer->init();
     }
@@ -72,7 +75,7 @@ class PhpCat
      *
      * @param $type  类型  大小写敏感的字符串. 常见的Transaction type有 "URL", "SQL", "Email", "Exec", "Task", "Call"
      * @param $name  具体名称, 如 某个具体URL地址, 某个具体方法名
-     * @return mixed
+     * @return DefaultTransaction
      */
     public function newTransaction($type, $name)
     {
@@ -93,7 +96,7 @@ class PhpCat
      * @param null $value
      * @param string $status  成功为 0 失败则
      */
-    public function logEvent($type, $name, $dataKey=null, $dataValue = null,  $status = \PhpCat\Message\Message::SUCCESS)
+    public function logEvent($type, $name, $dataKey=null, $dataValue = null,  $status = Message::SUCCESS)
     {
         $event = self::newEvent($type, $name);
         $event->setStatus($status);
@@ -117,7 +120,7 @@ class PhpCat
      * @param null $value
      * @param string $status  成功为 0 失败则
      */
-    public function logError($name, $dataKey=null, $dataValue = null,  $status = \PhpCat\Message\Message::SUCCESS)
+    public function logError($name, $dataKey=null, $dataValue = null,  $status = Message::SUCCESS)
     {
         $event = self::newEvent('Error', $name);
         $event->setStatus($status);
@@ -166,6 +169,55 @@ class PhpCat
     public function logMetricForSum($name, $value = 1.0)
     {
         self::logMetricInternal($name, 'S', sprintf("%.2f", $value));
+    }
+
+    /**
+     * DefaultMessageTree
+     */
+    public function logRemoteCallClient(CatContext $ctx){
+        try {
+            $messageTree = self::$messageProducer->getMessageManager()->getThreadLocalMessageTree();
+            $messageId = $messageTree->getMessageId();
+            if(empty($messageId)){
+                $messageId = DefaultMessageIdFactory::getNextId();
+                $messageTree->setMessageId($messageId);
+            }
+            $childId = DefaultMessageIdFactory::getNextId();
+//            $this->logEvent("RemoteCall","","&",$childId);
+            $this->logEvent("RemoteCall","",$childId,null);
+            $root = $messageTree->getRootMessageId();
+            if(empty($root)){
+                $root = $messageId;
+            }
+            $ctx->addProperty(CatContext::CONTEXT_ROOT,$root);
+            $ctx->addProperty(CatContext::CONTEXT_PARENT,$messageId);
+            $ctx->addProperty(CatContext::CONTEXT_CHILD,$childId);
+        }catch (\Exception $e){
+
+        }
+
+
+    }
+
+    public function logRemoteCallServer(CatContext $ctx){
+        try {
+            $messageTree = self::$messageProducer->getMessageManager()->getThreadLocalMessageTree();
+            $childId = $ctx->getProperty(CatContext::CONTEXT_CHILD);
+            $rootId = $ctx->getProperty(CatContext::CONTEXT_ROOT);
+            $parentId = $ctx->getProperty(CatContext::CONTEXT_PARENT);
+            if(!is_null($parentId)){
+                $messageTree->setParentMessageId($parentId);
+            }
+            if(!is_null($rootId)){
+                $messageTree->setRootMessageId($rootId);
+            }
+            if(!is_null($childId)){
+                $messageTree->setMessageId($childId);
+            }
+        }catch (\Exception $e){
+
+        }
+
     }
 
     /**

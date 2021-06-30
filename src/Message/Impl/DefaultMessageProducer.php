@@ -53,4 +53,11 @@ class DefaultMessageProducer implements MessageProducer
     {
         $this->m_messageManager = new SingleThreadMessageManager();
     }
+
+    /**
+     * @return SingleThreadMessageManager
+     */
+    public function getMessageManager(){
+        return $this->m_messageManager;
+    }
 }

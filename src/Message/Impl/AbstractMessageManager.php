@@ -109,9 +109,9 @@ abstract class AbstractMessageManager implements MessageManager
 
     public function flush($messageTree)
     {
-//        if ($messageTree->getMessageId() == null) {
+        if (empty($messageTree->getMessageId())) {
             $messageTree->setMessageId(DefaultMessageIdFactory::getNextId());
-//        }
+        }
 
         $sender = new SingleThreadSender();
         $sender->send($messageTree);
