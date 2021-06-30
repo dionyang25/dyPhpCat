@@ -3,7 +3,7 @@
     "type": "library",
     "description": "点评cat适应df php版本",
     "keywords": ["cat", "phpcat"],
-    "version":"1.0.1",
+    "version":"1.0",
     "require": {
         "php": ">=5.6.1"
     },
