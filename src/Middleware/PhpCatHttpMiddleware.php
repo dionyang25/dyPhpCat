@@ -9,7 +9,6 @@ use PhpCat\Message\Message;
 use Closure;
 use PhpCat\Utils\CatContext;
 use PhpCat\Utils\PhpCatUtil;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class PhpCatHttpMiddleware
@@ -43,7 +42,7 @@ class PhpCatHttpMiddleware
                 $phpCat->logEvent("RemotingService.server", env("CAT_DOMAIN"));
             }
         } catch (\Exception $e) {
-            \Log::warning("[CAT] exception:" . $e->getMessage());
+
         }
         try {
             $result = $next($request);
@@ -58,14 +57,16 @@ class PhpCatHttpMiddleware
             }
             throw $e2;
         } finally {
-            if (!empty($transaction)) {
-                $transaction->complete();
-            }
+            PhpCatUtil::setTransaction($transaction);
         }
     }
 
     public function terminate($request, $response)
     {
-
+        $transaction = PhpCatUtil::getTransaction();
+        if(!empty($transaction)){
+            PhpCatUtil::getTransaction()->complete();
+            PhpCatUtil::setTransaction(null);
+        }
     }
 }

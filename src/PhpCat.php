@@ -3,6 +3,7 @@ namespace PhpCat;
 use PhpCat\Config\Config;
 use PhpCat\Message\Impl\DefaultMessageIdFactory;
 use PhpCat\Message\Impl\DefaultMessageProducer;
+use PhpCat\Message\Impl\DefaultTransaction;
 use PhpCat\Utils\CatContext;
 
 /**
